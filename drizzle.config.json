@@ -1,0 +1,8 @@
+{
+  "schema": "./src/db/schema.ts",
+  "out": "./drizzle",
+  "driver": "pg",
+  "dbCredentials": {
+    "connectionString": "postgresql://neondb_owner:npg_NPyb01WZxDlE@ep-still-boat-adg2dymx-pooler.c-2.us-east-1.aws.neon.tech/meet-me?sslmode=require&channel_binding=require"
+  }
+}
