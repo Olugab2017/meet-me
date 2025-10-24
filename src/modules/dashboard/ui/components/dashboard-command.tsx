@@ -1,4 +1,4 @@
-import { Command, CommandInput, CommandItem, CommandList } from "cmdk";
+import { Command, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dispatch, SetStateAction } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
