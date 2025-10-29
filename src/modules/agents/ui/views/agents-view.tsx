@@ -6,18 +6,23 @@ import { LoadingState } from "@/components/loading-state";
 import { ErrorState } from "@/components/error-state";
 
 
+
 export const AgentsView = () => {
     const trpc = useTRPC();
     const {data} = useSuspenseQuery(
         trpc.agents.getMany.queryOptions());
     
     return (
-        <div className="p-4 flex flex-col gap-y-4">
-            {JSON.stringify(data, null, 2)}
+        <div>
+            
+            <div className="p-4 flex flex-col gap-y-4">
+                {JSON.stringify(data, null, 2)}
+            </div>
         </div>
-    
     );
 };
+
+
 
 export const AgentsViewLoading = () => {
     return (
