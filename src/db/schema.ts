@@ -77,3 +77,17 @@ export const agents = pgTable("agents", {
     .notNull(),
 
 });
+
+export const meetings = pgTable("meetings", {
+    id: text("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
+    agentId: text("agent_id").notNull().references(() => agents.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
+    title: text("title").notNull(),
+    description: text("description").default(""),
+    status: text("status").notNull().default("scheduled"), // scheduled, active, completed, cancelled
+    scheduledAt: timestamp("scheduled_at"),
+    startedAt: timestamp("started_at"),
+    endedAt: timestamp("ended_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
