@@ -6,33 +6,51 @@ import { meetingInsertSchema } from "../schemas"; // You'll need to create this
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
+import { create } from "domain";
 
 
 export const agentsRouter = createTRPCRouter({
-    getOne: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
-        const [existingAgent] = await db.select().from(agents).where(eq(agents.id, input.id));
-        
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-        return existingAgent;
+    getOne: protectedProcedure
+        .input(z.object({ id: z.string() }))
+        .query(async ({ input, ctx }) => {
+            const [existingAgent] = await db
+                .select()
+                .from(agents)
+                .where(
+                    and(
+                        eq(agents.id, input.id),
+                        eq(agents.userId, ctx.auth.user.id),
+                    ),
+                );
+
+            if (!existingAgent) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Agent not found",
+                });
+            }
+
+            return existingAgent;
+        }),
+
+
+    getMany: protectedProcedure.query(async ({ ctx }) => {
+        return db
+            .select()
+            .from(agents)
+            .where(eq(agents.userId, ctx.auth.user.id));
     }),
 
-    getMany: protectedProcedure.query(async () => {
-        const data = await db.select().from(agents);
-        
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-        return data;
-    }),
+        create: protectedProcedure.input(agentInsertSchema).mutation(async ({input, ctx}) => {
+            const [createdAgent] = await db.insert(agents).values({
+                name: input.name,
+                instructions: input.instructions ?? "",
+                userId: ctx.auth.user.id,
+            }).returning();
 
-    create: protectedProcedure.input(agentInsertSchema).mutation(async ({input, ctx}) => {
-        const [createdAgent] = await db.insert(agents).values({
-            name: input.name,
-            instructions: input.instructions ?? "",
-            userId: ctx.auth.user.id,
-        }).returning();
-
-        return createdAgent;
-    }),
-});
+            return createdAgent;
+        }),
+    });
 
 export const meetingsRouter = createTRPCRouter({
     // Get all meetings for the current user
