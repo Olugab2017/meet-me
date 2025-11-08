@@ -3,6 +3,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import {QueryClientProvider} from "@tanstack/react-query";
 import {createTRPCClient, httpBatchLink, loggerLink} from "@trpc/client";
+//import {createTRPCReact} from "@trpc/tanstack-react-query"
 import {createTRPCContext} from '@trpc/tanstack-react-query';
 import {useState} from "react";
 import {makeQueryClient} from "./query-client";
