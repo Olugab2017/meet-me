@@ -2,11 +2,10 @@ import {createTRPCRouter, baseProcedure, protectedProcedure} from "@/trpc/init";
 import {agents, meetings} from "@/db/schema";
 import {db} from "@/db";
 import { agentInsertSchema } from "../schemas";
-import { meetingInsertSchema } from "../schemas"; // You'll need to create this
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { eq, and, getTableColumns, sql } from "drizzle-orm";
-import { create } from "domain";
+import { desc, eq, and, getTableColumns, sql } from "drizzle-orm";
+import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE } from "@/constants";
 
 
 export const agentsRouter = createTRPCRouter({
@@ -37,26 +36,68 @@ export const agentsRouter = createTRPCRouter({
         }),
 
 
-    getMany: protectedProcedure.query(async ({ ctx }) => {
-        return db
-            .select({
-                ...getTableColumns(agents),
-                meetingCount: sql<number>`(SELECT COUNT(*) FROM ${meetings} WHERE ${meetings.agentId} = ${agents.id})`,
-            })
-            .from(agents)
-            .where(eq(agents.userId, ctx.auth.user.id));
-    }),
+    getMany: protectedProcedure
+        .input(z.object({
+            page: z.number().optional().default(DEFAULT_PAGE),
+            pageSize: z.number().min(MIN_PAGE_SIZE).max(MAX_PAGE_SIZE).optional().default(DEFAULT_PAGE_SIZE),
+            search: z.string().nullish(),
+        }).optional().default({}))
+        .query(async ({ input, ctx }) => {
+            const {search, page, pageSize} = input;
+            
+            // Get filtered data
+            const data = await db
+                .select({
+                    ...getTableColumns(agents),
+                    meetingCount: sql<number>`(SELECT COUNT(*) FROM ${meetings} WHERE ${meetings.agentId} = ${agents.id})`,
+                })
+                .from(agents)
+                .where(
+                    and(
+                        input?.search
+                            ? sql`${agents.name} ILIKE ${`%${input.search}%`}`
+                            : sql`true`,
+                        eq(agents.userId, ctx.auth.user.id)
+                    )
+                )
+                .orderBy(desc(agents.createdAt), desc(agents.id))
+                .limit(input?.pageSize ?? DEFAULT_PAGE_SIZE)
+                .offset(((input?.page ?? DEFAULT_PAGE) - 1) * (input?.pageSize ?? DEFAULT_PAGE_SIZE));
+            
+            // Get total count for pagination
+            const [total] = await db
+                .select({ count: sql<number>`count(*)` })
+                .from(agents)
+                .where(
+                    and(
+                        input?.search
+                            ? sql`${agents.name} ILIKE ${`%${input.search}%`}`
+                            : sql`true`,
+                        eq(agents.userId, ctx.auth.user.id)
+                    )
+                );
+            
+            const totalPages = Math.ceil(total.count / (input?.pageSize ?? DEFAULT_PAGE_SIZE));
+            
+            return {
+                items: data,
+                total: total.count,
+                totalPages
+            };
+        }),
 
-        create: protectedProcedure.input(agentInsertSchema).mutation(async ({input, ctx}) => {
+    create: protectedProcedure
+        .input(agentInsertSchema)
+        .mutation(async ({input, ctx}) => {
             const [createdAgent] = await db.insert(agents).values({
                 name: input.name,
                 instructions: input.instructions ?? "",
                 userId: ctx.auth.user.id,
             }).returning();
-
+            
             return createdAgent;
         }),
-    });
+});
 
 export const meetingsRouter = createTRPCRouter({
     // Get all meetings for the current user
@@ -69,7 +110,7 @@ export const meetingsRouter = createTRPCRouter({
             .from(meetings)
             .leftJoin(agents, eq(meetings.agentId, agents.id))
             .where(eq(meetings.userId, ctx.auth.user.id))
-            .orderBy(meetings.createdAt);
+            .orderBy(desc(meetings.createdAt));
         
         return data;
     }),

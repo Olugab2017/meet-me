@@ -23,9 +23,12 @@ export const MeetingForm = ({ onSuccess, onCancel, initialValues }: MeetingFormP
     const queryClient = useQueryClient();
 
     // Fetch agents using React Query with tRPC options
-    const { data: agents, isLoading: isLoadingAgents } = useQuery(
-        trpc.agents.getMany.queryOptions()
+    const { data: agentsData, isLoading: isLoadingAgents } = useQuery(
+        trpc.agents.getMany.queryOptions({})
     );
+
+    // Extract the items array from the response
+    const agents = agentsData?.items ?? [];
 
     // Create meeting mutation
     const createMeeting = useMutation({
@@ -94,7 +97,7 @@ export const MeetingForm = ({ onSuccess, onCancel, initialValues }: MeetingFormP
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    {agents?.map((agent: any) => (
+                                    {agents.map((agent) => (
                                         <SelectItem key={agent.id} value={agent.id}>
                                             {agent.name}
                                         </SelectItem>

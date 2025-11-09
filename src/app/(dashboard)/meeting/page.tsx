@@ -8,7 +8,7 @@ import { MeetingsListHeader } from "@/modules/meetings/ui/components/meetings-li
 
 const Page = async () => {
     const queryClient = getQueryClient();
-    void queryClient.prefetchQuery(trpc.agents.getMany.queryOptions());
+    void queryClient.prefetchQuery(trpc.agents.getMany.queryOptions({}));
     return (
         <>
             <MeetingsListHeader />
